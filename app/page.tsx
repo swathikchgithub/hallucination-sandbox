@@ -11,7 +11,6 @@ export default function Home() {
   const [actionState, setActionState] = useState<'Ready' | 'Working' | 'Done'>('Ready');
   const [activeGuideTab, setActiveGuideTab] = useState<'howToUse' | 'howItWorks'>('howToUse');
 
-  // SVG paths depending on the mode
   const ragPath = "M 120 160 Q 220 80 320 80 Q 420 80 480 160 L 820 160";
   const directPath = "M 120 160 L 480 160 L 820 160";
   const activePath = mode === 'grounding' ? ragPath : directPath;
@@ -65,14 +64,14 @@ export default function Home() {
 
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         
-        {/* Title Block */}
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4rem' }}>
           <div>
             <h1 style={{ fontSize: '28px', fontWeight: '500', color: '#2c2c2c', margin: 0, letterSpacing: '-0.5px' }}>
               LLM Pipeline Simulator
             </h1>
             <p style={{ margin: '4px 0 0 0', color: '#777', fontSize: '14px' }}>
-              Understand and test strategies used to bound and verify generative AI models.
+              Test and trace advanced industrial strategies used to mitigate LLM hallucinations.
             </p>
           </div>
           <button 
@@ -216,9 +215,9 @@ export default function Home() {
               style={formSelect}
             >
               <option value="vanilla">None (Vanilla LLM - Hallucination Risk)</option>
-              <option value="grounding">RAG (Grounding)</option>
+              <option value="grounding">RAG (Grounding with Top-P & Low Temp)</option>
               <option value="cove">Chain-of-Verification (Self-Correction)</option>
-              <option value="guardrail">Post-Generation Guardrails</option>
+              <option value="guardrail">Post-Generation Guardrails + Confidence Score</option>
             </select>
           </div>
 
@@ -229,6 +228,20 @@ export default function Home() {
             ========================================================================= */}
         {(output || loading) && (
           <div style={{ maxWidth: '750px', margin: '0 auto 4rem auto', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', padding: '2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+            
+            {/* Confidence Score Meter (When available) */}
+            {debugData?.confidenceScore && !loading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.25rem', background: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                <span style={{ fontSize: '18px' }}>🎯</span>
+                <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#166534' }}>
+                  Safety Guardrail Confidence Score: {debugData.confidenceScore}%
+                </span>
+                <div style={{ flex: 1, height: '6px', background: '#dcfce7', borderRadius: '3px', overflow: 'hidden', marginLeft: '10px' }}>
+                  <div style={{ width: `${debugData.confidenceScore}%`, height: '100%', background: '#22c55e' }} />
+                </div>
+              </div>
+            )}
+
             <h4 style={{ margin: '0 0 1rem 0', fontWeight: '600', fontSize: '15px', color: '#111' }}>
               {loading ? '⚡ Processing through pipeline...' : 'Processed Pipeline Result:'}
             </h4>
@@ -260,7 +273,6 @@ export default function Home() {
             ========================================================================= */}
         <div style={{ maxWidth: '750px', margin: '0 auto', borderTop: '1px solid #e2e8f0', paddingTop: '3rem' }}>
           
-          {/* Tab Selection Headers */}
           <div style={{ display: 'flex', gap: '1.5rem', borderBottom: '1px solid #e2e8f0', marginBottom: '1.5rem', paddingBottom: '0.5rem' }}>
             <button 
               onClick={() => setActiveGuideTab('howToUse')}
@@ -294,40 +306,41 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Tab Content 1: HOW TO USE */}
           {activeGuideTab === 'howToUse' && (
             <div style={{ color: '#4b5563', lineHeight: '1.6', fontSize: '14px' }}>
-              <p>Walk through these steps to see how LLMs generate facts, drift, and correct themselves:</p>
+              <p>Execute this testing script sequentially to understand how hallucinations break and correct themselves:</p>
               <ol style={{ paddingLeft: '1.2rem', margin: '1rem 0' }}>
                 <li style={{ marginBottom: '12px' }}>
-                  <strong>Trigger a Hallucination:</strong> Select <code>None (Vanilla LLM)</code>, enter <code style={inlineCode}>What is Acme pricing?</code>, and hit the play button. Notice how the model confidently invents an authoritative business strategy because it lacks real data.
+                  <strong>Trigger a Hallucination:</strong> Select <code>None (Vanilla LLM)</code>, enter <code style={inlineCode}>What is Acme pricing?</code>, and execute. Notice how the model confidently invents pricing structures out of thin air because it is not grounded.
                 </li>
                 <li style={{ marginBottom: '12px' }}>
-                  <strong>Ground the Model (RAG):</strong> Switch the strategy to <code>RAG (Grounding)</code> and run the same prompt. The <strong>CONTEXT DB</strong> node highlights. Watch the model return precise mock pricing because it was provided with a verified fact sheet.
+                  <strong>Ground the Model (RAG):</strong> Switch strategy to <code>RAG (Grounding)</code>. The <strong>CONTEXT DB</strong> node will highlight. Watch the model return precise pricing matching our database records because of low-temperature boundaries and strict context prompts.
                 </li>
                 <li style={{ marginBottom: '12px' }}>
-                  <strong>Analyze Self-Correction (CoVe):</strong> Switch the strategy to <code>Chain-of-Verification</code>. You will see the draft generated, the system's self-examination inquiries, and the ultimate fact-checked edit inside the <strong>State Trace</strong> below.
+                  <strong>Simulate Confidence Score Audit:</strong> Select <code>Post-Generation Guardrails</code>. The <strong>Audit Gate</strong> node activates. The output is evaluated for speculation, returning a structured safety confidence score directly inside the UI!
                 </li>
               </ol>
             </div>
           )}
 
-          {/* Tab Content 2: HOW IT WORKS */}
           {activeGuideTab === 'howItWorks' && (
             <div style={{ color: '#4b5563', lineHeight: '1.6', fontSize: '14px' }}>
-              <p>Each selected strategy modifies how data flows through the LLM pipeline:</p>
+              <p>We mitigate errors dynamically across five core engineering pillars:</p>
               <ul style={{ paddingLeft: '1.2rem', margin: '1rem 0', listStyleType: 'square' }}>
                 <li style={{ marginBottom: '12px' }}>
-                  <strong>None (Vanilla):</strong> The system passes your text straight to the LLM with no guardrails or context lookup. The model relys solely on probability parameters.
+                  <strong>1. Prompt Constraints:</strong> Clear guidelines such as <em>"Answer ONLY using the provided text. If missing, refuse."</em> keep generations within boundaries.
                 </li>
                 <li style={{ marginBottom: '12px' }}>
-                  <strong>RAG (Context Grounding):</strong> Before calling the LLM, the system performs a localized search in our mock database. If a match is found, it constraints the LLM to write answers <em>strictly</em> from that text block.
+                  <strong>2. Retrieval-Augmented Generation (RAG):</strong> Feeding verified documents before query processing forces the model to synthesize facts rather than guess from training memory.
                 </li>
                 <li style={{ marginBottom: '12px' }}>
-                  <strong>Chain-of-Verification (CoVe):</strong> An agentic process where the model writes a draft answer, generates questions to critique its own factual claims, answers those validation questions, and outputs an audited edit.
+                  <strong>3. Parameter Tuning:</strong> Keeping temperature at <code>0.1</code> and <code>top_p</code> at <code>0.1</code> filters out non-deterministic, random tokens.
                 </li>
                 <li style={{ marginBottom: '12px' }}>
-                  <strong>Post-Generation Guardrails:</strong> The output is routed through a secondary "evaluator" LLM programmed to strip speculative claims, absolute figures, or logical fallacies before serving the response.
+                  <strong>4. Chain-of-Verification (CoVe):</strong> A multi-turn audit loop where a draft is generated, self-interrogated with verification questions, and revised before returning to production.
+                </li>
+                <li style={{ marginBottom: '12px' }}>
+                  <strong>5. Post-Generation Auditing & Confidence Scoring:</strong> Responses are intercepted by an independent, structured evaluation gate that filters unverified assertions and scores safety factors.
                 </li>
               </ul>
             </div>
@@ -340,10 +353,7 @@ export default function Home() {
   );
 }
 
-// =========================================================================
-// STYLE CONSTANTS
-// =========================================================================
-
+// Styling classes remained exactly matching the beautiful Minimalist diagram
 const nodeCard: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
