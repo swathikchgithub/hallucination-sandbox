@@ -11,24 +11,35 @@ export default function Home() {
   const [actionState, setActionState] = useState<'Ready' | 'Working' | 'Done'>('Ready');
   const [activeGuideTab, setActiveGuideTab] = useState<'howToUse' | 'howItWorks'>('howToUse');
 
- 
-  // 1. Path for RAG: User (120,160) -> DB (320,80) -> LLM (480,160) -> Output (820,160)
-  const ragPath = "M 120 160 Q 220 80 320 80 Q 420 80 480 160 L 820 160";
+  // =========================================================================
+  // DYNAMIC PATH CONFIGURATION (Retrieval vs. Generation/Audit Tracks)
+  // =========================================================================
+  let path1 = "M 120 160 L 480 160"; // Default: User -> LLM
+  let path2 = "M 480 160 L 820 160"; // Default: LLM -> Output
+  let dot1Color = "#3b82f6";          // Blue
+  let dot2Color = "#8b5cf6";          // Purple
 
-  // 2. Path for Audit (CoVe & Guardrails): User -> LLM -> dips down to Verify/Gate (650, 245) -> Output
-  const auditPath = "M 120 160 L 480 160 Q 565 245 650 245 Q 735 245 820 160";
-
-  // 3. Path for Vanilla: Straight line bypassing everything
-  const directPath = "M 120 160 L 480 160 L 820 160";
-
-  // Dynamically switch the physical track the blue dot travels on
-  const activePath = mode === 'grounding' 
-    ? ragPath 
-    : (mode === 'cove' || mode === 'guardrail') 
-      ? auditPath 
-      : directPath;
-
-
+  if (mode === 'grounding') {
+    // Phase 1: User -> Context DB -> LLM (Green)
+    path1 = "M 120 160 Q 220 80 320 80 Q 420 80 480 160";
+    // Phase 2: LLM -> Output (Purple)
+    path2 = "M 480 160 L 820 160";
+    dot1Color = "#10b981"; // Emerald green for factual retrieval
+    dot2Color = "#8b5cf6"; // Purple for text synthesis
+  } else if (mode === 'cove' || mode === 'guardrail') {
+    // Phase 1: User -> LLM (Blue)
+    path1 = "M 120 160 L 480 160";
+    // Phase 2: LLM -> Audit Gate -> Output (Orange/Amber)
+    path2 = "M 480 160 Q 565 245 650 245 Q 735 245 820 160";
+    dot1Color = "#3b82f6"; // Blue for initial drafting
+    dot2Color = "#f59e0b"; // Amber/Orange for strict auditing
+  } else {
+    // Vanilla
+    path1 = "M 120 160 L 480 160";
+    path2 = "M 480 160 L 820 160";
+    dot1Color = "#ec4899"; // Pink for unmitigated flows
+    dot2Color = "#ec4899";
+  }
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -70,23 +81,31 @@ export default function Home() {
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#fcfcfc', color: '#111', fontFamily: 'system-ui, sans-serif', padding: '3rem 2rem' }}>
       
+      {/* Hand-Coordinated 2.5-second Loop Keyframes */}
       <style>{`
-        @keyframes travel {
+        @keyframes travelPhase1 {
           0% { offset-distance: 0%; opacity: 1; }
-          100% { offset-distance: 100%; opacity: 0.8; }
+          45% { offset-distance: 100%; opacity: 1; }
+          48%, 100% { offset-distance: 100%; opacity: 0; }
+        }
+        @keyframes travelPhase2 {
+          0%, 48% { offset-distance: 0%; opacity: 0; }
+          52% { offset-distance: 0%; opacity: 1; }
+          95% { offset-distance: 100%; opacity: 1; }
+          100% { offset-distance: 100%; opacity: 0; }
         }
       `}</style>
 
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         
-        {/* Header */}
+        {/* Title Block */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4rem' }}>
           <div>
             <h1 style={{ fontSize: '28px', fontWeight: '500', color: '#2c2c2c', margin: 0, letterSpacing: '-0.5px' }}>
               LLM Pipeline Simulator
             </h1>
             <p style={{ margin: '4px 0 0 0', color: '#777', fontSize: '14px' }}>
-              Test and trace advanced industrial strategies used to mitigate LLM hallucinations.
+              Observe data handshakes across segmented retrieval, processing, and auditing tracks.
             </p>
           </div>
           <button 
@@ -112,13 +131,23 @@ export default function Home() {
         </div>
 
         {/* =========================================================================
-            1. THE STAGGERED NODE DIAGRAM WITH ANIMATED PACKET
+            1. THE STAGGERED NODE DIAGRAM WITH COORDINATED DYNAMIC PATHS
             ========================================================================= */}
         <div style={{ position: 'relative', height: '300px', marginBottom: '4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 2rem' }}>
           
+          {/* Rendered Pipeline Connector Tracks */}
           <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}>
+            {/* Phase 1 Track (Retrieval/Prompt Route) */}
             <path 
-              d={activePath} 
+              d={path1} 
+              fill="none" 
+              stroke="#e2e8f0" 
+              strokeWidth="3" 
+              strokeDasharray="6 6" 
+            />
+            {/* Phase 2 Track (Generation/Audit Route) */}
+            <path 
+              d={path2} 
               fill="none" 
               stroke="#e2e8f0" 
               strokeWidth="3" 
@@ -126,7 +155,7 @@ export default function Home() {
             />
           </svg>
 
-          {/* Animating Blue Data Packet */}
+          {/* 🟢 PHASE 1 DATA PACKET (Retrieval) */}
           {loading && (
             <div style={{
               position: 'absolute',
@@ -135,11 +164,29 @@ export default function Home() {
               width: '16px',
               height: '16px',
               borderRadius: '50%',
-              backgroundColor: '#3b82f6',
-              boxShadow: '0 0 12px 4px rgba(59, 130, 246, 0.6)',
+              backgroundColor: dot1Color,
+              boxShadow: `0 0 12px 4px ${dot1Color}60`,
               zIndex: 3,
-              offsetPath: `path('${activePath}')`,
-              animation: 'travel 2.5s infinite linear',
+              offsetPath: `path('${path1}')`,
+              animation: 'travelPhase1 2.5s infinite linear',
+              pointerEvents: 'none'
+            }} />
+          )}
+
+          {/* 🟣 PHASE 2 DATA PACKET (Generation) */}
+          {loading && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              backgroundColor: dot2Color,
+              boxShadow: `0 0 12px 4px ${dot2Color}60`,
+              zIndex: 3,
+              offsetPath: `path('${path2}')`,
+              animation: 'travelPhase2 2.5s infinite linear',
               pointerEvents: 'none'
             }} />
           )}
@@ -155,9 +202,9 @@ export default function Home() {
             ...nodeCard, 
             zIndex: 2, 
             transform: 'translateY(-60px)',
-            border: isRAGActive ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+            border: isRAGActive ? '1.5px solid #10b981' : '1px solid #cbd5e1',
             backgroundColor: isRAGActive ? '#fff' : '#f8fafc',
-            boxShadow: isRAGActive ? '0 0 15px rgba(59, 130, 246, 0.15)' : 'none',
+            boxShadow: isRAGActive ? '0 0 15px rgba(16, 185, 129, 0.15)' : 'none',
             opacity: isRAGActive ? 1 : 0.4
           }}>
             <span style={{ fontSize: '22px', marginBottom: '8px' }}>📁</span>
@@ -175,9 +222,9 @@ export default function Home() {
             ...nodeCard, 
             zIndex: 2, 
             transform: 'translateY(85px)',
-            border: isAuditActive ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+            border: isAuditActive ? '1.5px solid #f59e0b' : '1px solid #cbd5e1',
             backgroundColor: isAuditActive ? '#fff' : '#f8fafc',
-            boxShadow: isAuditActive ? '0 0 15px rgba(59, 130, 246, 0.15)' : 'none',
+            boxShadow: isAuditActive ? '0 0 15px rgba(245, 158, 11, 0.15)' : 'none',
             opacity: isAuditActive ? 1 : 0.4
           }}>
             <span style={{ fontSize: '22px', marginBottom: '8px' }}>🛡️</span>
@@ -244,7 +291,6 @@ export default function Home() {
         {(output || loading) && (
           <div style={{ maxWidth: '750px', margin: '0 auto 4rem auto', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', padding: '2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
             
-            {/* Confidence Score Meter (When available) */}
             {debugData?.confidenceScore && !loading && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.25rem', background: '#f0fdf4', padding: '10px 14px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
                 <span style={{ fontSize: '18px' }}>🎯</span>
@@ -284,7 +330,7 @@ export default function Home() {
         )}
 
         {/* =========================================================================
-            5. EMBEDDED EDUCATIONAL GUIDE (HOW TO USE / HOW IT WORKS)
+            5. EMBEDDED EDUCATIONAL GUIDE
             ========================================================================= */}
         <div style={{ maxWidth: '750px', margin: '0 auto', borderTop: '1px solid #e2e8f0', paddingTop: '3rem' }}>
           
@@ -329,7 +375,7 @@ export default function Home() {
                   <strong>Trigger a Hallucination:</strong> Select <code>None (Vanilla LLM)</code>, enter <code style={inlineCode}>What is Acme pricing?</code>, and execute. Notice how the model confidently invents pricing structures out of thin air because it is not grounded.
                 </li>
                 <li style={{ marginBottom: '12px' }}>
-                  <strong>Ground the Model (RAG):</strong> Switch strategy to <code>RAG (Grounding)</code>. The <strong>CONTEXT DB</strong> node will highlight. Watch the model return precise pricing matching our database records because of low-temperature boundaries and strict context prompts.
+                  <strong>Ground the Model (RAG):</strong> Switch strategy to <code>RAG (Grounding)</code>. The <strong>CONTEXT DB</strong> node will highlight. Watch the green retrieval packet fetch facts, followed by the purple packet executing response generation.
                 </li>
                 <li style={{ marginBottom: '12px' }}>
                   <strong>Simulate Confidence Score Audit:</strong> Select <code>Post-Generation Guardrails</code>. The <strong>Audit Gate</strong> node activates. The output is evaluated for speculation, returning a structured safety confidence score directly inside the UI!
@@ -368,7 +414,7 @@ export default function Home() {
   );
 }
 
-// Styling classes remained exactly matching the beautiful Minimalist diagram
+// Styling Classes
 const nodeCard: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
