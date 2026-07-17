@@ -11,9 +11,24 @@ export default function Home() {
   const [actionState, setActionState] = useState<'Ready' | 'Working' | 'Done'>('Ready');
   const [activeGuideTab, setActiveGuideTab] = useState<'howToUse' | 'howItWorks'>('howToUse');
 
+ 
+  // 1. Path for RAG: User (120,160) -> DB (320,80) -> LLM (480,160) -> Output (820,160)
   const ragPath = "M 120 160 Q 220 80 320 80 Q 420 80 480 160 L 820 160";
+
+  // 2. Path for Audit (CoVe & Guardrails): User -> LLM -> dips down to Verify/Gate (650, 245) -> Output
+  const auditPath = "M 120 160 L 480 160 Q 565 245 650 245 Q 735 245 820 160";
+
+  // 3. Path for Vanilla: Straight line bypassing everything
   const directPath = "M 120 160 L 480 160 L 820 160";
-  const activePath = mode === 'grounding' ? ragPath : directPath;
+
+  // Dynamically switch the physical track the blue dot travels on
+  const activePath = mode === 'grounding' 
+    ? ragPath 
+    : (mode === 'cove' || mode === 'guardrail') 
+      ? auditPath 
+      : directPath;
+
+
 
   const handleSubmit = async () => {
     setLoading(true);
